@@ -1,10 +1,9 @@
 /**
- * PulseFlow AI - Full-Stack Cloud & Auth Application Logic
- * Implements user authentication, fresh account initialization, real habit CRUD,
- * active focus session timer with audio feedback, 365-day heatmap calculations, and CSV/JSON export.
+ * PulseFlow AI - Main Application Logic
+ * Comprehensive Habit Tracker & Focus Timer with Auth, Real CRUD, Heatmaps & CSV Export.
  */
 
-// Global Application State
+// Global State
 const state = {
     user: null, // { email, name, isGuest }
     habits: [],
@@ -15,8 +14,7 @@ const state = {
         secondsRemaining: 1500,
         totalSeconds: 1500,
         isRunning: false,
-        intervalId: null,
-        attachedHabitId: ''
+        intervalId: null
     },
     charts: {}
 };
@@ -25,10 +23,10 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
     initAuthListeners();
     checkExistingSession();
-    initLucideIcons();
     initNavigation();
-    initModals();
+    initHabitForms();
     initTimerControls();
+    initBackupButtons();
 });
 
 function initLucideIcons() {
@@ -36,7 +34,7 @@ function initLucideIcons() {
 }
 
 /* ==========================================================================
-   User Authentication & Session Management
+   User Session & Authentication
    ========================================================================== */
 function initAuthListeners() {
     const tabLogin = document.getElementById('tab-login-btn');
@@ -53,7 +51,7 @@ function initAuthListeners() {
             isLoginMode = true;
             tabLogin.classList.add('active');
             tabSignup.classList.remove('active');
-            if (btnSubmit) btnSubmit.textContent = 'Log In to PulseFlow';
+            if (btnSubmit) btnSubmit.textContent = 'Log In & Start Tracking';
         });
 
         tabSignup.addEventListener('click', () => {
@@ -67,16 +65,16 @@ function initAuthListeners() {
     if (formAuth) {
         formAuth.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const user = { email: email, name: email.split('@')[0], isGuest: false };
-            loginUser(user);
+            const email = document.getElementById('auth-email').value || 'user@pulseflow.ai';
+            const userObj = { email, name: email.split('@')[0], isGuest: false };
+            loginUser(userObj);
         });
     }
 
     if (btnGuest) {
         btnGuest.addEventListener('click', () => {
-            const guestUser = { email: 'guest@pulseflow.local', name: 'Guest User', isGuest: true };
-            loginUser(guestUser);
+            const guestObj = { email: 'guest@pulseflow.local', name: 'Guest User', isGuest: true };
+            loginUser(guestObj);
         });
     }
 
@@ -125,7 +123,6 @@ function showMainApp() {
         document.getElementById('mobile-bottom-bar').style.display = 'flex';
     }
 
-    // Update User Profile display
     const nameEl = document.getElementById('user-display-name');
     const avatarEl = document.getElementById('user-avatar-initials');
     if (nameEl && state.user) nameEl.textContent = state.user.name;
@@ -138,6 +135,7 @@ function showMainApp() {
     initHeatmapGrid();
     initCharts();
     renderAIInsights();
+    initLucideIcons();
 }
 
 function loadUserData() {
@@ -154,7 +152,6 @@ function loadUserData() {
             state.logs = {};
         }
     } else {
-        // Starts completely fresh & clean!
         state.habits = [];
         state.logs = {};
     }
@@ -191,6 +188,22 @@ function initNavigation() {
 
 function switchTab(tabId) {
     state.activeView = tabId;
+    
+    // Update headers
+    const titleEl = document.getElementById('header-page-title');
+    const subEl = document.getElementById('header-page-sub');
+    const headers = {
+        dashboard: { title: 'Dashboard & Habits', sub: 'Track your daily rituals & habit progress' },
+        timer: { title: 'Focus Stopwatch', sub: 'Deep work timer attached to habits' },
+        analytics: { title: 'Analytics & Heatmaps', sub: '365-day execution intensity & balance' },
+        'ai-insights': { title: 'AI Insights', sub: 'Behavioral correlations & energy triggers' },
+        settings: { title: 'Backup & Settings', sub: 'Export habit data & account management' }
+    };
+    if (headers[tabId]) {
+        if (titleEl) titleEl.textContent = headers[tabId].title;
+        if (subEl) subEl.textContent = headers[tabId].sub;
+    }
+
     document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(b => {
         if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
         else b.classList.remove('active');
@@ -209,18 +222,92 @@ function switchTab(tabId) {
 }
 
 /* ==========================================================================
-   Habits CRUD & Logging Engine
+   Habits CRUD & Form Handling
    ========================================================================== */
+function initHabitForms() {
+    // 1. Quick Inline Add Form
+    const quickForm = document.getElementById('form-quick-add-habit');
+    if (quickForm) {
+        quickForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const titleInput = document.getElementById('quick-habit-input');
+            const ritualInput = document.getElementById('quick-habit-ritual');
+            const domainInput = document.getElementById('quick-habit-domain');
+
+            if (!titleInput || !titleInput.value.trim()) return;
+
+            addNewHabit(titleInput.value.trim(), domainInput.value, ritualInput.value, 'boolean', 1, 'check');
+            titleInput.value = '';
+        });
+    }
+
+    // 2. Header & Modal Add Form
+    const btnHeaderAdd = document.getElementById('btn-header-add-habit');
+    const modalAdd = document.getElementById('modal-add-habit');
+    const btnCloseModal = document.getElementById('btn-close-add-habit');
+    const btnCancelModal = document.getElementById('btn-cancel-modal');
+    const modalForm = document.getElementById('form-modal-new-habit');
+
+    if (btnHeaderAdd && modalAdd) {
+        btnHeaderAdd.addEventListener('click', () => {
+            modalAdd.classList.add('active');
+        });
+    }
+
+    if (btnCloseModal && modalAdd) btnCloseModal.addEventListener('click', () => modalAdd.classList.remove('active'));
+    if (btnCancelModal && modalAdd) btnCancelModal.addEventListener('click', () => modalAdd.classList.remove('active'));
+
+    if (modalForm) {
+        modalForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('modal-habit-name').value;
+            const domain = document.getElementById('modal-habit-domain').value;
+            const ritual = document.getElementById('modal-habit-ritual').value;
+            const type = document.getElementById('modal-habit-type').value;
+            const target = parseInt(document.getElementById('modal-habit-target').value, 10) || 1;
+
+            addNewHabit(name, domain, ritual, type, target, type === 'timer' ? 'mins' : 'units');
+            modalAdd.classList.remove('active');
+            modalForm.reset();
+        });
+    }
+}
+
+function addNewHabit(title, domain, ritual, type, target, unit) {
+    const newHabit = {
+        id: 'h_' + Date.now(),
+        title,
+        domain,
+        ritual,
+        type,
+        target,
+        unit,
+        completed: false,
+        streak: 0,
+        resiliency: 100
+    };
+
+    state.habits.push(newHabit);
+    saveUserData();
+    renderHabitsList();
+    renderMetrics();
+    updateTimerHabitSelect();
+    initHeatmapGrid();
+    initLucideIcons();
+
+    if (window.confetti) window.confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
+}
+
 function renderHabitsList() {
     const container = document.getElementById('habits-list-container');
     if (!container) return;
 
     if (state.habits.length === 0) {
         container.innerHTML = `
-            <div class="text-center p-4" style="color: #9CA3AF; border: 2px dashed rgba(255,255,255,0.08); border-radius: 14px; padding: 24px;">
-                <i data-lucide="plus-circle" style="width: 36px; height: 36px; color: #6366F1; margin-bottom: 8px;"></i>
-                <h4>No Habits Created Yet</h4>
-                <p style="font-size: 0.85rem; margin-top: 4px;">Tap <strong>"+ New Habit"</strong> or load starter templates to start tracking.</p>
+            <div class="text-center" style="color: #94A3B8; border: 2px dashed rgba(255,255,255,0.1); border-radius: 14px; padding: 32px 16px;">
+                <i data-lucide="plus-circle" style="width: 40px; height: 40px; color: #6366F1; margin-bottom: 8px;"></i>
+                <h4 style="font-size: 1.1rem; color: #F8FAFC;">No Habits Added Yet</h4>
+                <p style="font-size: 0.88rem; margin-top: 4px; margin-bottom: 16px;">Type a habit name above or click <strong>"+ New Habit"</strong> to start your first ritual.</p>
             </div>
         `;
         initLucideIcons();
@@ -234,22 +321,24 @@ function renderHabitsList() {
 
     container.innerHTML = filtered.map(habit => `
         <div class="habit-item ${habit.completed ? 'completed' : ''}">
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
                 <button class="habit-check-btn" onclick="toggleHabit('${habit.id}')">
                     <i data-lucide="check"></i>
                 </button>
                 <div>
-                    <span style="font-weight: 600; font-size: 0.95rem;">${escapeHtml(habit.title)}</span>
-                    <div style="font-size: 0.75rem; color: #9CA3AF;">${habit.domain} • ${habit.target} ${habit.unit}</div>
+                    <span style="font-weight: 600; font-size: 0.95rem; color: #F8FAFC;">${escapeHtml(habit.title)}</span>
+                    <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">
+                        <span style="text-transform: capitalize;">${habit.ritual}</span> • ${habit.domain} • ${habit.target} ${habit.unit}
+                    </div>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
                 <div style="text-align: right;">
-                    <span style="font-size: 0.78rem; font-weight: 700; color: #6366F1;">${habit.resiliency}% Strength</span>
-                    <div style="font-size: 0.75rem; color: #9CA3AF;">🔥 ${habit.streak}d</div>
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #6366F1;">${habit.resiliency}% Strength</span>
+                    <div style="font-size: 0.75rem; color: #94A3B8;">🔥 ${habit.streak}d streak</div>
                 </div>
                 <button class="btn-delete-habit" onclick="deleteHabit('${habit.id}')" title="Delete Habit">
-                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
                 </button>
             </div>
         </div>
@@ -270,7 +359,8 @@ function toggleHabit(habitId) {
         habit.streak += 1;
         habit.resiliency = Math.min(100, habit.resiliency + 2);
         state.logs[todayStr][habit.id] = true;
-        if (window.confetti) window.confetti({ particleCount: 35, spread: 60, origin: { y: 0.8 } });
+        playChimeSound();
+        if (window.confetti) window.confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
     } else {
         habit.streak = Math.max(0, habit.streak - 1);
         habit.resiliency = Math.max(50, habit.resiliency - 3);
@@ -284,7 +374,7 @@ function toggleHabit(habitId) {
 }
 
 function deleteHabit(habitId) {
-    if (confirm('Are you sure you want to delete this habit?')) {
+    if (confirm('Delete this habit routine?')) {
         state.habits = state.habits.filter(h => h.id !== habitId);
         saveUserData();
         renderHabitsList();
@@ -310,7 +400,7 @@ function renderMetrics() {
 }
 
 /* ==========================================================================
-   Active Focus Stopwatch & Pomodoro Timer
+   Active Focus Session Timer & Audio
    ========================================================================== */
 function initTimerControls() {
     const btnStart = document.getElementById('btn-timer-start');
@@ -348,13 +438,11 @@ function startTimer() {
             playChimeSound();
             if (window.confetti) window.confetti({ particleCount: 80, spread: 90 });
 
-            // Auto log attached habit if selected
             const select = document.getElementById('timer-habit-select');
             if (select && select.value) {
                 toggleHabit(select.value);
             }
-
-            alert('🎉 Focus Session Completed!');
+            alert('🎉 Focus Session Finished!');
         }
     }, 1000);
 
@@ -389,19 +477,19 @@ function playChimeSound() {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 note
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 1.2);
+        osc.stop(audioCtx.currentTime + 1.0);
     } catch (e) {
-        console.log('Audio chime unavailable');
+        console.log('Audio disabled');
     }
 }
 
 /* ==========================================================================
-   Analytics & Dynamic 365-Day Heatmap
+   Analytics, Dynamic 365-Day Heatmap & Radar
    ========================================================================== */
 function initHeatmapGrid() {
     const grid = document.getElementById('heatmap-grid');
@@ -436,9 +524,9 @@ function renderRadarChart() {
     if (!ctx) return;
     if (state.charts.radar) state.charts.radar.destroy();
 
-    const domains = { health: 0, career: 0, mindfulness: 0, learning: 0, finance: 0 };
+    const domains = { health: 20, career: 20, mindfulness: 20, learning: 20, finance: 20 };
     state.habits.forEach(h => {
-        if (h.completed && domains[h.domain] !== undefined) domains[h.domain] += 20;
+        if (h.completed && domains[h.domain] !== undefined) domains[h.domain] += 25;
     });
 
     state.charts.radar = new Chart(ctx, {
@@ -446,8 +534,8 @@ function renderRadarChart() {
         data: {
             labels: ['Health', 'Career', 'Mindfulness', 'Learning', 'Finance'],
             datasets: [{
-                label: 'Life Domain Score',
-                data: [domains.health || 20, domains.career || 20, domains.mindfulness || 20, domains.learning || 20, domains.finance || 20],
+                label: 'Domain Balance',
+                data: [domains.health, domains.career, domains.mindfulness, domains.learning, domains.finance],
                 backgroundColor: 'rgba(99, 102, 241, 0.25)',
                 borderColor: '#6366F1',
                 borderWidth: 2
@@ -467,67 +555,23 @@ function renderAIInsights() {
     if (!container) return;
 
     if (state.habits.length === 0) {
-        container.innerHTML = `<div class="card glass-card text-muted">Add habits and complete daily logs to unlock AI habit correlation insights.</div>`;
+        container.innerHTML = `<div class="card glass-card text-muted">Create habits and complete daily logs to unlock AI habit correlation insights.</div>`;
         return;
     }
 
     container.innerHTML = `
-        <div class="glass-card p-4" style="border-left: 4px solid #6366F1; padding: 20px; margin-bottom: 12px;">
-            <span style="font-size: 0.7rem; font-weight: 700; color: #6366F1; text-transform: uppercase;">Active Habit Correlation</span>
-            <h4 style="margin: 6px 0;">Currently Tracking ${state.habits.length} Daily Habits</h4>
-            <p style="font-size: 0.85rem; color: #9CA3AF;">Your overall resiliency score is ${document.getElementById('score-resiliency').textContent}. Keep completing daily rituals to build compounding habit momentum.</p>
+        <div class="glass-card" style="border-left: 4px solid #6366F1; padding: 20px; margin-bottom: 12px;">
+            <span style="font-size: 0.72rem; font-weight: 700; color: #6366F1; text-transform: uppercase;">Active Habit Synergy</span>
+            <h4 style="margin: 6px 0;">Tracking ${state.habits.length} Active Daily Rituals</h4>
+            <p style="font-size: 0.88rem; color: #94A3B8;">Current habit resiliency score is ${document.getElementById('score-resiliency').textContent}. Keep check-ins consistent to maintain peak momentum.</p>
         </div>
     `;
 }
 
 /* ==========================================================================
-   Modals, Export & Starter Templates
+   Backup, Export & Sample Data Controls
    ========================================================================== */
-function initModals() {
-    // Add Habit modal
-    const btnAdd = document.getElementById('btn-add-habit');
-    const modalAdd = document.getElementById('modal-add-habit');
-    const btnCloseAdd = document.getElementById('btn-close-add-habit');
-    const btnCancelAdd = document.getElementById('btn-cancel-add-habit');
-    const formAdd = document.getElementById('form-new-habit');
-
-    if (btnAdd && modalAdd) btnAdd.addEventListener('click', () => modalAdd.classList.add('active'));
-    if (btnCloseAdd) btnCloseAdd.addEventListener('click', () => modalAdd.classList.remove('active'));
-    if (btnCancelAdd) btnCancelAdd.addEventListener('click', () => modalAdd.classList.remove('active'));
-
-    if (formAdd) {
-        formAdd.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('habit-name').value;
-            const domain = document.getElementById('habit-domain').value;
-            const ritual = document.getElementById('habit-ritual').value;
-            const type = document.getElementById('habit-type').value;
-            const target = parseInt(document.getElementById('habit-target').value, 10) || 1;
-
-            const newHabit = {
-                id: 'h_' + Date.now(),
-                title: name,
-                domain: domain,
-                ritual: ritual,
-                type: type,
-                target: target,
-                unit: type === 'timer' ? 'mins' : (type === 'numeric' ? 'units' : 'check'),
-                completed: false,
-                streak: 0,
-                resiliency: 100
-            };
-
-            state.habits.push(newHabit);
-            saveUserData();
-            renderHabitsList();
-            renderMetrics();
-            updateTimerHabitSelect();
-            modalAdd.classList.remove('active');
-            formAdd.reset();
-        });
-    }
-
-    // Export JSON / CSV & Templates
+function initBackupButtons() {
     const btnExportJSON = document.getElementById('btn-export-json');
     const btnExportCSV = document.getElementById('btn-export-csv');
     const btnSample = document.getElementById('btn-load-sample-habits');
@@ -563,25 +607,27 @@ function initModals() {
                 { id: 'h1', title: 'Morning Hydration & Electrolytes', domain: 'health', ritual: 'morning', target: 2500, unit: 'ml', completed: true, streak: 14, resiliency: 96 },
                 { id: 'h2', title: 'Deep Work Focus Block', domain: 'career', ritual: 'morning', target: 240, unit: 'mins', completed: true, streak: 8, resiliency: 92 },
                 { id: 'h3', title: 'Mindfulness & Meditation', domain: 'mindfulness', ritual: 'morning', target: 15, unit: 'mins', completed: false, streak: 5, resiliency: 88 },
-                { id: 'h4', title: '30 Mins Workout / Cardio', domain: 'health', ritual: 'afternoon', target: 1, unit: 'check', completed: false, streak: 3, resiliency: 82 }
+                { id: 'h4', title: '30 Mins Cardio Workout', domain: 'health', ritual: 'afternoon', target: 1, unit: 'check', completed: false, streak: 3, resiliency: 82 }
             ];
             saveUserData();
             renderHabitsList();
             renderMetrics();
             updateTimerHabitSelect();
-            alert('Loaded starter habit template!');
+            initHeatmapGrid();
+            alert('Starter habit template loaded!');
         });
     }
 
     if (btnClear) {
         btnClear.addEventListener('click', () => {
-            if (confirm('Clear all habit data for this account?')) {
+            if (confirm('Reset all habit data for this account?')) {
                 state.habits = [];
                 state.logs = {};
                 saveUserData();
                 renderHabitsList();
                 renderMetrics();
                 updateTimerHabitSelect();
+                initHeatmapGrid();
             }
         });
     }

@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PulseFlow AI | Cloud Habit & Productivity Tracker</title>
-    <meta name="description" content="Full-stack productivity and habit tracker with authentication, active focus timers, real-time analytics, and cloud sync.">
+    <title>PulseFlow AI | Productivity & Habit Tracker</title>
+    <meta name="description" content="Next-generation productivity and habit tracker app with AI insights, heatmaps, focus timers, and habit intelligence.">
     
-    <!-- iOS Native App Meta Tags -->
+    <!-- PWA & Mobile Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PulseFlow">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0B0F17">
+    <meta name="theme-color" content="#0F172A">
 
-    <!-- Fonts & Icons -->
+    <!-- Fonts & CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,15 +20,15 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="dark-theme ios-app">
+<body class="dark-theme">
 
-    <!-- User Authentication Screen (Shows if not logged in) -->
+    <!-- Auth / Onboarding Screen -->
     <div id="auth-screen" class="auth-overlay">
         <div class="auth-card glass-card">
             <div class="auth-brand">
                 <div class="brand-icon"><i data-lucide="activity"></i></div>
                 <h2>PulseFlow<span class="highlight">.AI</span></h2>
-                <p class="text-muted">Sign in to sync your habits across iPhone & Android</p>
+                <p class="text-muted">Habit Intelligence Platform</p>
             </div>
 
             <div class="auth-tabs">
@@ -41,87 +39,90 @@
             <form id="form-auth" class="auth-form">
                 <div class="form-group">
                     <label for="auth-email">Email Address</label>
-                    <input type="email" id="auth-email" placeholder="alex@example.com" required>
+                    <input type="email" id="auth-email" placeholder="alex@example.com" value="user@pulseflow.ai" required>
                 </div>
                 <div class="form-group">
                     <label for="auth-password">Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" required>
+                    <input type="password" id="auth-password" placeholder="••••••••" value="password123" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-full mt-2" id="btn-auth-submit">
-                    Log In to PulseFlow
+                    Log In & Start Tracking
                 </button>
             </form>
 
             <div class="auth-divider"><span>OR</span></div>
 
             <button class="btn btn-secondary btn-full" id="btn-guest-login">
-                <i data-lucide="user"></i> Continue as Guest (Start Fresh Blank App)
+                <i data-lucide="zap"></i> Quick Guest Mode (Start Fresh)
             </button>
         </div>
     </div>
 
-    <!-- Main App Layout (Hidden until logged in) -->
+    <!-- Main Application Layout -->
     <div class="app-layout" id="main-app-layout" style="display: none;">
-        <!-- Desktop Sidebar -->
+        <!-- Left Sidebar Navigation -->
         <aside class="sidebar">
             <div class="brand">
                 <div class="brand-icon"><i data-lucide="activity"></i></div>
                 <div class="brand-text">
                     <span class="brand-name">PulseFlow<span class="highlight">.AI</span></span>
-                    <span class="brand-tagline">Cloud Platform</span>
+                    <span class="brand-tagline">Habit Tracker</span>
                 </div>
             </div>
 
             <nav class="nav-menu">
                 <button class="nav-item active" data-tab="dashboard">
-                    <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+                    <i data-lucide="layout-dashboard"></i><span>Dashboard & Habits</span>
                 </button>
                 <button class="nav-item" data-tab="timer">
-                    <i data-lucide="timer"></i><span>Active Timer</span>
+                    <i data-lucide="timer"></i><span>Focus Stopwatch</span>
                 </button>
                 <button class="nav-item" data-tab="analytics">
-                    <i data-lucide="bar-chart-3"></i><span>Analytics & Heatmaps</span>
+                    <i data-lucide="bar-chart-3"></i><span>Heatmap & Radar</span>
                 </button>
                 <button class="nav-item" data-tab="ai-insights">
                     <i data-lucide="sparkles"></i><span>AI Insights</span>
                 </button>
                 <button class="nav-item" data-tab="settings">
-                    <i data-lucide="settings"></i><span>Account & Cloud Sync</span>
+                    <i data-lucide="settings"></i><span>Backup & Settings</span>
                 </button>
             </nav>
 
             <div class="user-profile">
                 <div class="avatar" id="user-avatar-initials">U</div>
                 <div class="user-info">
-                    <span class="user-name" id="user-display-name">User Account</span>
-                    <span class="user-level" id="user-status-text">Cloud Sync Active</span>
+                    <span class="user-name" id="user-display-name">User</span>
+                    <span class="user-level">Active Session</span>
                 </div>
                 <button class="btn-logout" id="btn-logout" title="Log Out"><i data-lucide="log-out"></i></button>
             </div>
         </aside>
 
-        <!-- Main View Container -->
+        <!-- Main Content Area -->
         <main class="main-content">
+            <!-- Top Header Bar -->
             <header class="top-bar">
                 <div class="brand-mobile-header">
                     <div class="brand-icon"><i data-lucide="activity"></i></div>
                     <span class="brand-name">PulseFlow<span class="highlight">.AI</span></span>
                 </div>
 
+                <div class="header-title-box">
+                    <h2 id="header-page-title">Dashboard</h2>
+                    <span class="text-muted" id="header-page-sub">Track daily activities & habits</span>
+                </div>
+
                 <div class="header-actions">
-                    <button class="btn btn-secondary btn-icon" id="btn-cloud-sync" title="Sync Cloud Data">
-                        <i data-lucide="refresh-cw"></i>
-                        <span class="desktop-only">Sync</span>
-                    </button>
-                    <button class="btn btn-primary btn-icon" id="btn-add-habit">
+                    <button class="btn btn-primary" id="btn-header-add-habit">
                         <i data-lucide="plus"></i>
-                        <span class="desktop-only">New Habit</span>
+                        <span>+ New Habit</span>
                     </button>
                 </div>
             </header>
 
-            <!-- Dashboard View -->
+            <!-- 1. DASHBOARD VIEW -->
             <section id="view-dashboard" class="view-panel active">
+                <!-- Metrics Summary Banner -->
                 <div class="metrics-grid">
                     <div class="metric-card glass-card">
                         <div class="metric-header">
@@ -129,12 +130,12 @@
                             <i data-lucide="shield-check" class="icon-indigo"></i>
                         </div>
                         <div class="metric-value" id="score-resiliency">100<span class="unit">%</span></div>
-                        <div class="metric-subtext positive"><i data-lucide="trending-up"></i> Dynamic Score</div>
+                        <div class="metric-subtext positive"><i data-lucide="trending-up"></i> Consistency Score</div>
                     </div>
 
                     <div class="metric-card glass-card">
                         <div class="metric-header">
-                            <span class="metric-title">Today's Execution</span>
+                            <span class="metric-title">Today's Check-ins</span>
                             <i data-lucide="check-square" class="icon-teal"></i>
                         </div>
                         <div class="metric-value" id="score-today-completion">0 / 0</div>
@@ -144,32 +145,58 @@
                     </div>
                 </div>
 
-                <!-- Habits List -->
+                <!-- Quick Inline Habit Creation Bar -->
+                <div class="card glass-card inline-add-box">
+                    <div class="inline-add-header">
+                        <i data-lucide="sparkles" class="icon-teal"></i>
+                        <span>Quick Add Habit</span>
+                    </div>
+                    <form id="form-quick-add-habit" class="inline-add-form">
+                        <input type="text" id="quick-habit-input" placeholder="Type a habit (e.g. Read 30 mins non-fiction) and press Enter..." required>
+                        <select id="quick-habit-ritual">
+                            <option value="morning">🌅 Morning</option>
+                            <option value="afternoon">☀️ Afternoon</option>
+                            <option value="evening">🌙 Evening</option>
+                        </select>
+                        <select id="quick-habit-domain">
+                            <option value="health">💪 Health & Bio</option>
+                            <option value="career">💼 Deep Work</option>
+                            <option value="mindfulness">🧘 Mindfulness</option>
+                            <option value="learning">📚 Learning</option>
+                            <option value="finance">💰 Finance</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary" id="btn-quick-submit">
+                            <i data-lucide="plus"></i> Add
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Habit List & Filter Pills -->
                 <div class="card glass-card">
                     <div class="card-header-actions">
-                        <h3>Habit Rituals</h3>
+                        <h3>Your Habit Rituals</h3>
                         <div class="filter-pills" id="habit-filter-pills">
-                            <button class="pill active" data-filter="all">All</button>
+                            <button class="pill active" data-filter="all">All Rituals</button>
                             <button class="pill" data-filter="morning">Morning</button>
-                            <button class="pill" data-filter="afternoon">Noon</button>
-                            <button class="pill" data-filter="evening">Night</button>
+                            <button class="pill" data-filter="afternoon">Afternoon</button>
+                            <button class="pill" data-filter="evening">Evening</button>
                         </div>
                     </div>
 
                     <div class="habits-list" id="habits-list-container">
-                        <!-- Rendered dynamically -->
+                        <!-- Dynamic Habits List Rendered by JS -->
                     </div>
                 </div>
             </section>
 
-            <!-- Active Focus Session Timer View -->
+            <!-- 2. FOCUS TIMER VIEW -->
             <section id="view-timer" class="view-panel">
                 <div class="card glass-card text-center timer-card">
                     <div class="timer-badge"><i data-lucide="flame" class="icon-rose"></i> Active Focus Stopwatch</div>
                     
-                    <div class="form-group mt-4 mb-4" style="max-width: 320px; margin: 16px auto;">
+                    <div class="form-group mt-4" style="max-width: 340px; margin: 20px auto 0 auto;">
                         <label for="timer-habit-select">Attach Timer to Habit:</label>
-                        <select id="timer-habit-select">
+                        <select id="timer-habit-select" class="custom-select">
                             <option value="">-- General Deep Work Session --</option>
                         </select>
                     </div>
@@ -178,7 +205,7 @@
 
                     <div class="timer-controls">
                         <button class="btn btn-primary btn-lg" id="btn-timer-start">
-                            <i data-lucide="play"></i> Start Timer
+                            <i data-lucide="play"></i> Start Session
                         </button>
                         <button class="btn btn-secondary btn-lg" id="btn-timer-reset">
                             <i data-lucide="rotate-ccw"></i> Reset
@@ -187,14 +214,12 @@
                 </div>
             </section>
 
-            <!-- Analytics View -->
+            <!-- 3. ANALYTICS & HEATMAP VIEW -->
             <section id="view-analytics" class="view-panel">
                 <div class="card glass-card mb-4">
-                    <div class="card-header-actions">
-                        <div>
-                            <h2>Annual Habit Heatmap</h2>
-                            <p class="text-muted">365-day execution intensity calculated from actual logs</p>
-                        </div>
+                    <div class="card-header">
+                        <h2>Annual Habit Heatmap</h2>
+                        <p class="text-muted">365-day execution intensity calculated from daily check-ins</p>
                     </div>
                     <div class="heatmap-wrapper">
                         <div id="heatmap-grid" class="heatmap-grid"></div>
@@ -203,7 +228,7 @@
 
                 <div class="card glass-card">
                     <div class="card-header">
-                        <h3>Wheel of Life Balance</h3>
+                        <h3>Life Domain Balance (Wheel of Life)</h3>
                     </div>
                     <div class="chart-container-sm">
                         <canvas id="radarDomainChart"></canvas>
@@ -211,37 +236,41 @@
                 </div>
             </section>
 
-            <!-- AI Insights View -->
+            <!-- 4. AI INSIGHTS VIEW -->
             <section id="view-ai-insights" class="view-panel">
-                <div class="section-intro">
-                    <h2>AI Pattern Recognition</h2>
-                    <p class="text-muted">Dynamic habit correlations generated from real user logs.</p>
+                <div class="section-intro mb-4">
+                    <h2>AI Behavioral Pattern Recognition</h2>
+                    <p class="text-muted">Dynamic habit triggers and recommendations based on real logs.</p>
                 </div>
                 <div class="insights-cards-grid" id="insights-container"></div>
             </section>
 
-            <!-- Settings & Cloud Sync View -->
+            <!-- 5. BACKUP & SETTINGS VIEW -->
             <section id="view-settings" class="view-panel">
-                <div class="section-intro">
-                    <h2>Cloud Account & Data Backup</h2>
-                    <p class="text-muted">Manage user sessions and export habit data for Android/iOS backup.</p>
-                </div>
-
                 <div class="card glass-card mb-4">
-                    <h3>Data Management & Mobile Export</h3>
-                    <p class="text-muted mb-4 mt-2">Export your habit history as CSV or JSON to transfer across devices.</p>
+                    <h3>Data Backup & Starter Templates</h3>
+                    <p class="text-muted mb-4 mt-2">Export your habit history or reset data anytime.</p>
+                    
                     <div class="btn-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="btn-export-json"><i data-lucide="download"></i> Export JSON Backup</button>
-                        <button class="btn btn-secondary" id="btn-export-csv"><i data-lucide="file-text"></i> Export CSV Report</button>
-                        <button class="btn btn-secondary" id="btn-load-sample-habits"><i data-lucide="sparkles"></i> Load Starter Habit Template</button>
-                        <button class="btn btn-secondary" id="btn-clear-data" style="color: var(--accent-rose);"><i data-lucide="trash-2"></i> Reset App Data</button>
+                        <button class="btn btn-secondary" id="btn-load-sample-habits">
+                            <i data-lucide="sparkles" class="icon-teal"></i> Load Starter Habit Template
+                        </button>
+                        <button class="btn btn-secondary" id="btn-export-json">
+                            <i data-lucide="download"></i> Export JSON Backup
+                        </button>
+                        <button class="btn btn-secondary" id="btn-export-csv">
+                            <i data-lucide="file-text"></i> Export CSV Report
+                        </button>
+                        <button class="btn btn-secondary" id="btn-clear-data" style="color: var(--accent-rose);">
+                            <i data-lucide="trash-2"></i> Reset All Data
+                        </button>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Mobile Bottom Navigation Bar -->
+    <!-- Mobile Bottom Tab Bar -->
     <nav class="mobile-bottom-bar" id="mobile-bottom-bar" style="display: none;">
         <button class="mobile-nav-item active" data-tab="dashboard">
             <i data-lucide="layout-dashboard"></i>
@@ -261,68 +290,70 @@
         </button>
         <button class="mobile-nav-item" data-tab="settings">
             <i data-lucide="settings"></i>
-            <span>Account</span>
+            <span>Settings</span>
         </button>
     </nav>
 
-    <!-- Create Habit Modal -->
+    <!-- Detailed New Habit Modal -->
     <div class="modal-overlay" id="modal-add-habit">
         <div class="modal-content glass-card">
             <div class="modal-header">
-                <h3><i data-lucide="plus-circle" class="icon-teal"></i> Create New Habit</h3>
+                <h3><i data-lucide="plus-circle" class="icon-teal"></i> Create New Custom Habit</h3>
                 <button class="btn-close" id="btn-close-add-habit"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body">
-                <form id="form-new-habit">
+                <form id="form-modal-new-habit">
                     <div class="form-group">
-                        <label for="habit-name">Habit Title</label>
-                        <input type="text" id="habit-name" placeholder="e.g. Read 30 mins non-fiction" required>
+                        <label for="modal-habit-name">Habit Title</label>
+                        <input type="text" id="modal-habit-name" placeholder="e.g., Read 30 pages of non-fiction" required>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="habit-domain">Life Domain</label>
-                            <select id="habit-domain" required>
-                                <option value="health">Health & Bio</option>
-                                <option value="career">Deep Work & Career</option>
-                                <option value="mindfulness">Mindfulness & Well-being</option>
-                                <option value="learning">Learning & Skills</option>
-                                <option value="finance">Finance & Wealth</option>
+                            <label for="modal-habit-domain">Life Domain</label>
+                            <select id="modal-habit-domain" class="custom-select" required>
+                                <option value="health">💪 Health & Bio</option>
+                                <option value="career">💼 Deep Work & Career</option>
+                                <option value="mindfulness">🧘 Mindfulness & Mental</option>
+                                <option value="learning">📚 Skill & Learning</option>
+                                <option value="finance">💰 Finance & Wealth</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="habit-ritual">Time of Day</label>
-                            <select id="habit-ritual" required>
-                                <option value="morning">Morning Ritual</option>
-                                <option value="afternoon">Afternoon Ritual</option>
-                                <option value="evening">Evening Ritual</option>
+                            <label for="modal-habit-ritual">Time of Day</label>
+                            <select id="modal-habit-ritual" class="custom-select" required>
+                                <option value="morning">🌅 Morning Ritual</option>
+                                <option value="afternoon">☀️ Afternoon Ritual</option>
+                                <option value="evening">🌙 Evening Ritual</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="habit-type">Measurement Type</label>
-                            <select id="habit-type">
-                                <option value="boolean">Boolean (Yes/No)</option>
-                                <option value="numeric">Quantitative Target (Count)</option>
-                                <option value="timer">Timer Session (Minutes)</option>
+                            <label for="modal-habit-type">Measurement Type</label>
+                            <select id="modal-habit-type" class="custom-select">
+                                <option value="boolean">Boolean Check (Yes / No)</option>
+                                <option value="numeric">Numeric Count Target</option>
+                                <option value="timer">Duration Target (Minutes)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="habit-target">Target Value</label>
-                            <input type="number" id="habit-target" value="1" min="1">
+                            <label for="modal-habit-target">Target Value</label>
+                            <input type="number" id="modal-habit-target" value="1" min="1">
                         </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Habit</button>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-cancel-add-habit">Cancel</button>
-                <button class="btn btn-primary" id="btn-submit-add-habit">Create Habit</button>
             </div>
         </div>
     </div>
 
+    <!-- Application Script -->
     <script src="app.js"></script>
 </body>
 </html>

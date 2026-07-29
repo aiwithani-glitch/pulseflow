@@ -1,11 +1,11 @@
 /**
  * PulseFlow AI - Habit & Productivity Intelligence Engine
  * Features:
- * 1. Initial 0 Habits with "Load 9 Starter Habit Templates" Button (Disappears when habits > 0)
- * 2. Clickable User Profile Modal in Sidebar (Displays Pro Level & PulseFlow AI v1.0)
- * 3. Settings Tab Theme Switcher (☀️ Fresh Light vs 🌙 Midnight Dark)
- * 4. Dropdown Arrow Alignment Fix & Clean Header
- * 5. Touch & Mouse Drag & Drop Reordering (⋮⋮)
+ * 1. Circular Avatar Image Placement directly in user initials spot
+ * 2. Initial 0 Habits state (Template loading banner appears ONLY when habits === 0)
+ * 3. 3 Monthly Streak Freeze Tokens (🛡️ Freeze any specific habit for today)
+ * 4. Clean Focus Stopwatch (No habit dropdown list attached)
+ * 5. Weekly Goal Streak Shield Protection (5x/wk goals protected)
  */
 
 // Global State
@@ -13,6 +13,9 @@ const state = {
     user: null,
     habits: [],
     logs: {},
+    notes: {},
+    frozenDays: {},
+    freezeTokens: 3,
     activeView: 'dashboard',
     draggedIndex: null,
     touchStartY: 0,
@@ -28,18 +31,18 @@ const state = {
     charts: {}
 };
 
-// 9 Curated Starter Default Habits
+// 9 Curated Starter Habits (Initialized with ZERO streaks & ZERO completions)
 function getStarterHabits() {
     return [
-        { id: 'h_default_1', title: 'Morning Hydration & Electrolytes', domain: 'health', type: 'numeric', target: 3000, unit: 'ml', frequency: 'Daily (7x/wk)', reminderEnabled: true, reminderTime: '08:00', completed: false, streak: 5, resiliency: 96 },
-        { id: 'h_default_2', title: 'No Negative Thoughts Today', domain: 'mindfulness', type: 'boolean', target: 1, unit: 'check', frequency: 'Daily (7x/wk)', reminderEnabled: false, reminderTime: '08:30', completed: false, streak: 4, resiliency: 94 },
-        { id: 'h_default_3', title: 'Daily Manifestation & Visualization', domain: 'mindfulness', type: 'boolean', target: 1, unit: 'check', frequency: 'Daily (7x/wk)', reminderEnabled: true, reminderTime: '09:00', completed: false, streak: 7, resiliency: 98 },
-        { id: 'h_default_4', title: 'Mindfulness & Meditation', domain: 'mindfulness', type: 'timer', target: 10, unit: 'mins', frequency: 'Daily (7x/wk)', reminderEnabled: false, reminderTime: '09:30', completed: false, streak: 3, resiliency: 88 },
-        { id: 'h_default_5', title: 'Screen Time Less Than 3 Hours', domain: 'mindfulness', type: 'timer', target: 180, unit: 'mins', frequency: 'Daily (7x/wk)', reminderEnabled: true, reminderTime: '21:00', completed: false, streak: 4, resiliency: 89 },
-        { id: 'h_default_6', title: 'Zero Processed Sugar Intake', domain: 'health', type: 'boolean', target: 1, unit: 'check', frequency: '6x / week', reminderEnabled: false, reminderTime: '20:00', completed: false, streak: 6, resiliency: 91 },
-        { id: 'h_default_7', title: 'Tech & Architecture Reading / Learning', domain: 'learning', type: 'numeric', target: 30, unit: 'pages', frequency: '6x / week', reminderEnabled: true, reminderTime: '21:30', completed: false, streak: 5, resiliency: 90 },
-        { id: 'h_default_8', title: 'Deep Work Focus Block (4 Hours)', domain: 'career', type: 'timer', target: 240, unit: 'mins', frequency: '5x / week', reminderEnabled: true, reminderTime: '10:00', completed: false, streak: 8, resiliency: 92 },
-        { id: 'h_default_9', title: 'Core Fitness & Cardio Workout', domain: 'health', type: 'boolean', target: 1, unit: 'check', frequency: '5x / week', reminderEnabled: true, reminderTime: '17:00', completed: false, streak: 4, resiliency: 86 }
+        { id: 'h_default_1', title: 'Morning Hydration & Electrolytes', domain: 'health', type: 'numeric', target: 3000, unit: 'ml', frequency: 'Daily (7x/wk)', weeklyTarget: 7, reminderFreq: 'daily', reminderTime: '08:00', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_2', title: 'No Negative Thoughts Today', domain: 'mindfulness', type: 'boolean', target: 1, unit: 'check', frequency: 'Daily (7x/wk)', weeklyTarget: 7, reminderFreq: 'none', reminderTime: '08:30', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_3', title: 'Daily Manifestation & Visualization', domain: 'mindfulness', type: 'boolean', target: 1, unit: 'check', frequency: 'Daily (7x/wk)', weeklyTarget: 7, reminderFreq: 'daily', reminderTime: '09:00', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_4', title: 'Mindfulness & Meditation', domain: 'mindfulness', type: 'timer', target: 10, unit: 'mins', frequency: 'Daily (7x/wk)', weeklyTarget: 7, reminderFreq: 'none', reminderTime: '09:30', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_5', title: 'Screen Time Less Than 3 Hours', domain: 'mindfulness', type: 'timer', target: 180, unit: 'mins', frequency: 'Daily (7x/wk)', weeklyTarget: 7, reminderFreq: 'daily', reminderTime: '21:00', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_6', title: 'Zero Processed Sugar Intake', domain: 'health', type: 'boolean', target: 1, unit: 'check', frequency: '6x / week', weeklyTarget: 6, reminderFreq: 'none', reminderTime: '20:00', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_7', title: 'Tech & Architecture Reading / Learning', domain: 'learning', type: 'numeric', target: 30, unit: 'pages', frequency: '6x / week', weeklyTarget: 6, reminderFreq: 'daily', reminderTime: '21:30', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_8', title: 'Deep Work Focus Block (4 Hours)', domain: 'career', type: 'timer', target: 240, unit: 'mins', frequency: '5x / week', weeklyTarget: 5, reminderFreq: 'daily', reminderTime: '10:00', completed: false, streak: 0, resiliency: 100 },
+        { id: 'h_default_9', title: 'Core Fitness & Cardio Workout', domain: 'health', type: 'boolean', target: 1, unit: 'check', frequency: '5x / week', weeklyTarget: 5, reminderFreq: 'daily', reminderTime: '17:00', completed: false, streak: 0, resiliency: 100 }
     ];
 }
 
@@ -51,7 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initHabitForms();
     initEditModal();
+    initNoteModal();
     initUserProfileModal();
+    initAvatarUpload();
     initTimerControls();
     initBackupButtons();
     initNotificationEngine();
@@ -62,8 +67,50 @@ function initLucideIcons() {
 }
 
 /* ==========================================================================
-   User Account Profile Modal (Bottom-Left Sidebar Click)
+   User Profile Picture Upload & Circular Avatar Placement
    ========================================================================== */
+function initAvatarUpload() {
+    const fileInput = document.getElementById('user-avatar-file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const avatarUrl = evt.target.result;
+                    if (state.user) {
+                        state.user.avatarUrl = avatarUrl;
+                        localStorage.setItem('pulseflow_user', JSON.stringify(state.user));
+                        updateUserAvatarUI();
+                        alert('📸 Profile picture updated successfully!');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+}
+
+function updateUserAvatarUI() {
+    if (!state.user) return;
+    const avatarImg = document.getElementById('user-avatar-img');
+    const avatarInitials = document.getElementById('user-avatar-initials');
+    const modalImg = document.getElementById('modal-user-avatar-img');
+    const modalInitials = document.getElementById('modal-user-avatar-initials');
+
+    if (state.user.avatarUrl) {
+        if (avatarImg) { avatarImg.src = state.user.avatarUrl; avatarImg.style.display = 'block'; }
+        if (avatarInitials) avatarInitials.style.display = 'none';
+        if (modalImg) { modalImg.src = state.user.avatarUrl; modalImg.style.display = 'block'; }
+        if (modalInitials) modalInitials.style.display = 'none';
+    } else {
+        if (avatarImg) avatarImg.style.display = 'none';
+        if (avatarInitials) { avatarInitials.style.display = 'inline-block'; avatarInitials.textContent = state.user.name.charAt(0).toUpperCase(); }
+        if (modalImg) modalImg.style.display = 'none';
+        if (modalInitials) { modalInitials.style.display = 'inline-block'; modalInitials.textContent = state.user.name.charAt(0).toUpperCase(); }
+    }
+}
+
 function initUserProfileModal() {
     const profileBox = document.getElementById('sidebar-user-profile');
     const modalUser = document.getElementById('modal-user-info');
@@ -72,17 +119,13 @@ function initUserProfileModal() {
 
     if (profileBox && modalUser) {
         profileBox.addEventListener('click', (e) => {
-            // Prevent triggering if user clicked logout button
             if (e.target.closest('#btn-logout')) return;
-
             if (state.user) {
                 const nameEl = document.getElementById('modal-user-name');
                 const emailEl = document.getElementById('modal-user-email');
-                const avatarEl = document.getElementById('modal-user-avatar');
-
                 if (nameEl) nameEl.textContent = state.user.name;
                 if (emailEl) emailEl.textContent = state.user.email;
-                if (avatarEl) avatarEl.textContent = state.user.name.charAt(0).toUpperCase();
+                updateUserAvatarUI();
             }
             modalUser.classList.add('active');
         });
@@ -93,7 +136,7 @@ function initUserProfileModal() {
 }
 
 /* ==========================================================================
-   Theme Switcher Engine (Light vs Dark Mode in Settings)
+   Theme Switcher Engine (Dark / Light Mode)
    ========================================================================== */
 function initTheme() {
     const savedTheme = localStorage.getItem('pulseflow_theme') || 'dark';
@@ -120,11 +163,11 @@ function setTheme(theme) {
     if (theme === 'light') {
         if (sunIcon) sunIcon.style.display = 'none';
         if (moonIcon) moonIcon.style.display = 'inline-block';
-        if (labelText) labelText.textContent = 'Switch to Dark Mode';
+        if (labelText) labelText.textContent = 'Dark / Light Mode';
     } else {
         if (sunIcon) sunIcon.style.display = 'inline-block';
         if (moonIcon) moonIcon.style.display = 'none';
-        if (labelText) labelText.textContent = 'Switch to Light Mode';
+        if (labelText) labelText.textContent = 'Dark / Light Mode';
     }
 
     if (state.charts.radar) renderRadarChart();
@@ -150,14 +193,13 @@ function switchTab(tabId) {
     const subEl = document.getElementById('header-page-sub');
     const btnHeaderAdd = document.getElementById('btn-header-add-habit');
 
-    // Show + New Habit button ONLY on Dashboard tab
     if (btnHeaderAdd) {
         btnHeaderAdd.style.display = (tabId === 'dashboard') ? 'inline-flex' : 'none';
     }
 
     const headers = {
         dashboard: { title: 'Dashboard & Habits', sub: 'Track your daily habits & productivity progress' },
-        timer: { title: 'Focus Stopwatch', sub: 'Deep work timer attached to habits' },
+        timer: { title: 'Focus Stopwatch', sub: 'Deep work focus timer' },
         analytics: { title: 'Analytics & Heatmaps', sub: '365-day execution intensity & balance' },
         'ai-insights': { title: 'AI Insights', sub: 'Behavioral correlations & energy triggers' },
         settings: { title: 'Backup & Settings', sub: 'Export habit data, theme & account settings' }
@@ -185,7 +227,7 @@ function switchTab(tabId) {
 }
 
 /* ==========================================================================
-   User Session & Data Loading (Starts with 0 habits for new users)
+   User Session & Data Loading (Enforces 0 Habits at Start)
    ========================================================================== */
 function initAuthListeners() {
     const tabLogin = document.getElementById('tab-login-btn');
@@ -273,14 +315,12 @@ function showMainApp() {
     }
 
     const nameEl = document.getElementById('user-display-name');
-    const avatarEl = document.getElementById('user-avatar-initials');
     if (nameEl && state.user) nameEl.textContent = state.user.name;
-    if (avatarEl && state.user) avatarEl.textContent = state.user.name.charAt(0).toUpperCase();
+    updateUserAvatarUI();
 
     loadUserData();
     renderHabitsList();
     renderMetrics();
-    updateTimerHabitSelect();
     initHeatmapGrid();
     initCharts();
     renderAIInsights();
@@ -296,13 +336,22 @@ function loadUserData() {
             const parsed = JSON.parse(saved);
             state.habits = parsed.habits || [];
             state.logs = parsed.logs || {};
+            state.notes = parsed.notes || {};
+            state.frozenDays = parsed.frozenDays || {};
+            state.freezeTokens = parsed.freezeTokens !== undefined ? parsed.freezeTokens : 3;
         } catch (e) {
             state.habits = [];
             state.logs = {};
+            state.notes = {};
+            state.frozenDays = {};
+            state.freezeTokens = 3;
         }
     } else {
         state.habits = [];
         state.logs = {};
+        state.notes = {};
+        state.frozenDays = {};
+        state.freezeTokens = 3;
         saveUserData();
     }
 }
@@ -310,7 +359,13 @@ function loadUserData() {
 function saveUserData() {
     if (!state.user) return;
     const userKey = `pulseflow_data_${state.user.email}`;
-    localStorage.setItem(userKey, JSON.stringify({ habits: state.habits, logs: state.logs }));
+    localStorage.setItem(userKey, JSON.stringify({
+        habits: state.habits,
+        logs: state.logs,
+        notes: state.notes,
+        frozenDays: state.frozenDays,
+        freezeTokens: state.freezeTokens
+    }));
 }
 
 window.loadStarterTemplates = function() {
@@ -318,14 +373,13 @@ window.loadStarterTemplates = function() {
     saveUserData();
     renderHabitsList();
     renderMetrics();
-    updateTimerHabitSelect();
     initHeatmapGrid();
     initLucideIcons();
     if (window.confetti) window.confetti({ particleCount: 50, spread: 70, origin: { y: 0.8 } });
 };
 
 /* ==========================================================================
-   Habits CRUD & Touch Drag & Drop
+   Habits CRUD, Reflection Notes & Monthly Freeze Token Engine
    ========================================================================== */
 function initHabitForms() {
     const quickForm = document.getElementById('form-quick-add-habit');
@@ -336,7 +390,7 @@ function initHabitForms() {
             const domainInput = document.getElementById('quick-habit-domain');
 
             if (!titleInput || !titleInput.value.trim()) return;
-            addNewHabit(titleInput.value.trim(), domainInput.value, 'boolean', 1, 'check', 'Daily (7x/wk)');
+            addNewHabit(titleInput.value.trim(), domainInput.value, 'boolean', 1, 'check', 'Daily (7x/wk)', 7, 'none', '08:00');
             titleInput.value = '';
         });
     }
@@ -346,6 +400,14 @@ function initHabitForms() {
     const btnCloseModal = document.getElementById('btn-close-add-habit');
     const btnCancelModal = document.getElementById('btn-cancel-modal');
     const modalForm = document.getElementById('form-modal-new-habit');
+    const reqFreqSelect = document.getElementById('modal-habit-reminder-freq');
+    const reqDateInput = document.getElementById('modal-habit-reminder-date');
+
+    if (reqFreqSelect && reqDateInput) {
+        reqFreqSelect.addEventListener('change', () => {
+            reqDateInput.style.display = (reqFreqSelect.value === 'specific_date') ? 'block' : 'none';
+        });
+    }
 
     if (btnHeaderAdd && modalAdd) {
         btnHeaderAdd.addEventListener('click', () => modalAdd.classList.add('active'));
@@ -361,17 +423,20 @@ function initHabitForms() {
             const domain = document.getElementById('modal-habit-domain').value;
             const type = document.getElementById('modal-habit-type').value;
             const target = parseInt(document.getElementById('modal-habit-target').value, 10) || 1;
-            const reminderEnable = document.getElementById('modal-habit-reminder-enable').value === 'yes';
+            const weeklyTarget = parseInt(document.getElementById('modal-habit-weekly-freq').value, 10) || 7;
+            const reminderFreq = document.getElementById('modal-habit-reminder-freq').value;
             const reminderTime = document.getElementById('modal-habit-reminder-time').value || '08:00';
+            const reminderDate = document.getElementById('modal-habit-reminder-date').value || '';
 
-            addNewHabit(name, domain, type, target, type === 'timer' ? 'mins' : 'units', 'Daily (7x/wk)', reminderEnable, reminderTime);
+            const freqLabel = weeklyTarget < 7 ? `${weeklyTarget}x / week` : 'Daily (7x/wk)';
+            addNewHabit(name, domain, type, target, type === 'timer' ? 'mins' : 'units', freqLabel, weeklyTarget, reminderFreq, reminderTime, reminderDate);
             modalAdd.classList.remove('active');
             modalForm.reset();
         });
     }
 }
 
-function addNewHabit(title, domain, type, target, unit, frequency, reminderEnable = false, reminderTime = '08:00') {
+function addNewHabit(title, domain, type, target, unit, frequency, weeklyTarget = 7, reminderFreq = 'none', reminderTime = '08:00', reminderDate = '') {
     const newHabit = {
         id: 'h_' + Date.now(),
         title,
@@ -380,8 +445,10 @@ function addNewHabit(title, domain, type, target, unit, frequency, reminderEnabl
         target,
         unit,
         frequency: frequency || 'Daily (7x/wk)',
-        reminderEnabled: reminderEnable,
+        weeklyTarget: weeklyTarget,
+        reminderFreq: reminderFreq,
         reminderTime: reminderTime,
+        reminderDate: reminderDate,
         completed: false,
         streak: 0,
         resiliency: 100
@@ -391,7 +458,6 @@ function addNewHabit(title, domain, type, target, unit, frequency, reminderEnabl
     saveUserData();
     renderHabitsList();
     renderMetrics();
-    updateTimerHabitSelect();
     initHeatmapGrid();
     initLucideIcons();
 
@@ -419,13 +485,15 @@ function initEditModal() {
             habit.type = document.getElementById('edit-habit-type').value;
             habit.target = parseInt(document.getElementById('edit-habit-target').value, 10) || 1;
             habit.unit = habit.type === 'timer' ? 'mins' : 'units';
-            habit.reminderEnabled = document.getElementById('edit-habit-reminder-enable').value === 'yes';
+            habit.weeklyTarget = parseInt(document.getElementById('edit-habit-weekly-freq').value, 10) || 7;
+            habit.frequency = habit.weeklyTarget < 7 ? `${habit.weeklyTarget}x / week` : 'Daily (7x/wk)';
+            habit.reminderFreq = document.getElementById('edit-habit-reminder-freq').value;
             habit.reminderTime = document.getElementById('edit-habit-reminder-time').value || '08:00';
+            habit.reminderDate = document.getElementById('edit-habit-reminder-date').value || '';
 
             saveUserData();
             renderHabitsList();
             renderMetrics();
-            updateTimerHabitSelect();
             modalEdit.classList.remove('active');
         });
     }
@@ -440,21 +508,109 @@ window.openEditHabitModal = function(habitId) {
     document.getElementById('edit-habit-domain').value = habit.domain;
     document.getElementById('edit-habit-type').value = habit.type || 'boolean';
     document.getElementById('edit-habit-target').value = habit.target || 1;
-    document.getElementById('edit-habit-reminder-enable').value = habit.reminderEnabled ? 'yes' : 'no';
+    document.getElementById('edit-habit-weekly-freq').value = habit.weeklyTarget || 7;
+    document.getElementById('edit-habit-reminder-freq').value = habit.reminderFreq || 'none';
     document.getElementById('edit-habit-reminder-time').value = habit.reminderTime || '08:00';
+    document.getElementById('edit-habit-reminder-date').value = habit.reminderDate || '';
 
     document.getElementById('modal-edit-habit').classList.add('active');
 };
+
+/* Monthly Streak Freeze Token Action */
+window.useFreezeToken = function(habitId) {
+    const habit = state.habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (state.frozenDays[todayStr] && state.frozenDays[todayStr][habitId]) {
+        alert('🛡️ This habit is already frozen for today!');
+        return;
+    }
+
+    if (state.freezeTokens <= 0) {
+        alert('⚠️ No Freeze Tokens remaining for this month! You get 3 fresh Freeze Tokens every month.');
+        return;
+    }
+
+    if (confirm(`Use 1 Freeze Token to protect "${habit.title}" for today? (${state.freezeTokens - 1} token(s) will remain)`)) {
+        state.freezeTokens -= 1;
+        if (!state.frozenDays[todayStr]) state.frozenDays[todayStr] = {};
+        state.frozenDays[todayStr][habitId] = true;
+
+        saveUserData();
+        renderHabitsList();
+        renderMetrics();
+        alert('🛡️ Streak Frozen! Missing today will not break your streak.');
+    }
+};
+
+/* Daily Habit Reflection Note Modal */
+function initNoteModal() {
+    const modalNote = document.getElementById('modal-habit-note');
+    const btnClose = document.getElementById('btn-close-note-modal');
+    const btnCancel = document.getElementById('btn-cancel-note-modal');
+    const formNote = document.getElementById('form-modal-habit-note');
+
+    if (btnClose && modalNote) btnClose.addEventListener('click', () => modalNote.classList.remove('active'));
+    if (btnCancel && modalNote) btnCancel.addEventListener('click', () => modalNote.classList.remove('active'));
+
+    if (formNote) {
+        formNote.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const habitId = document.getElementById('note-habit-id').value;
+            const content = document.getElementById('note-text-content').value;
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (!state.notes[todayStr]) state.notes[todayStr] = {};
+            state.notes[todayStr][habitId] = content;
+
+            saveUserData();
+            renderHabitsList();
+            modalNote.classList.remove('active');
+            alert('📝 Reflection note saved for today!');
+        });
+    }
+}
+
+window.openNoteModal = function(habitId) {
+    const habit = state.habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    document.getElementById('note-habit-id').value = habit.id;
+    document.getElementById('note-habit-title').textContent = habit.title;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const existingNote = (state.notes[todayStr] && state.notes[todayStr][habit.id]) ? state.notes[todayStr][habit.id] : '';
+    document.getElementById('note-text-content').value = existingNote;
+
+    document.getElementById('modal-habit-note').classList.add('active');
+};
+
+/* Weekly Goal Streak Shield Protection */
+function calculateWeeklyCompletions(habitId) {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    let completions = 0;
+
+    for (let i = 0; i < dayOfWeek; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        if (state.logs[dateStr] && state.logs[dateStr][habitId]) {
+            completions++;
+        }
+    }
+    return completions;
+}
 
 function renderHabitsList() {
     const container = document.getElementById('habits-list-container');
     if (!container) return;
 
-    // Initial 0 Habits State: Display "Load 9 Starter Habit Templates" Banner
     if (state.habits.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; border: 2px dashed var(--border-color); border-radius: 16px; padding: 36px 20px;">
-                <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--primary-indigo); margin-bottom: 12px;"></i>
+                <i data-lucide="sparkles" style="width: 48px; height: 48px; color: #FFA116; margin-bottom: 12px;"></i>
                 <h4 style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 6px;">No Active Habits Yet</h4>
                 <p style="font-size: 0.88rem; color: var(--text-muted); max-width: 420px; margin: 0 auto 20px auto;">Start by typing a habit above, or load 9 curated habit templates across health, focus, and mindfulness.</p>
                 <button type="button" class="btn btn-primary" onclick="loadStarterTemplates()">
@@ -466,8 +622,14 @@ function renderHabitsList() {
         return;
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     container.innerHTML = state.habits.map((habit, idx) => {
         const domainClass = `domain-${habit.domain || 'health'}`;
+        const weeklyDone = calculateWeeklyCompletions(habit.id);
+        const isWeeklyTargetMet = habit.weeklyTarget < 7 && weeklyDone >= habit.weeklyTarget;
+        const isFrozenToday = state.frozenDays[todayStr] && state.frozenDays[todayStr][habit.id];
+        const hasNoteToday = state.notes[todayStr] && state.notes[todayStr][habit.id];
 
         return `
         <div class="habit-item ${habit.completed ? 'completed' : ''}" 
@@ -481,7 +643,6 @@ function renderHabitsList() {
              ontouchend="handleTouchEnd(event, ${idx})">
             
             <div style="display: flex; align-items: center; gap: 12px;">
-                <!-- Drag Grip Icon Handle ⋮⋮ -->
                 <div class="drag-handle-grip" title="Hold & drag to reorder">
                     <i data-lucide="grip-vertical" style="width: 18px; height: 18px; color: var(--text-subtle);"></i>
                 </div>
@@ -490,26 +651,34 @@ function renderHabitsList() {
                     <i data-lucide="check"></i>
                 </button>
                 <div>
-                    <span style="font-weight: 600; font-size: 0.98rem; color: var(--text-main);">${escapeHtml(habit.title)}</span>
+                    <span style="font-weight: 600; font-size: 0.96rem; color: var(--text-main);">${escapeHtml(habit.title)}</span>
                     <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                         <span class="domain-badge ${domainClass}">${habit.domain || 'health'}</span>
                         <span>• ${habit.target} ${habit.unit}</span>
                         ${habit.frequency ? `<span class="frequency-chip">📅 ${habit.frequency}</span>` : ''}
-                        ${habit.reminderEnabled ? `<span style="color: var(--accent-amber); font-weight: 600;">🔔 ${habit.reminderTime}</span>` : ''}
+                        ${isWeeklyTargetMet ? `<span style="background: rgba(0,184,163,0.15); color: #00B8A3; font-weight: 700; padding: 2px 8px; border-radius: 99px;">🛡️ ${weeklyDone}/${habit.weeklyTarget} Goal Met</span>` : ''}
+                        ${isFrozenToday ? `<span style="background: rgba(144,85,255,0.18); color: #9055FF; font-weight: 700; padding: 2px 8px; border-radius: 99px;">❄️ Streak Frozen Today</span>` : ''}
+                        ${hasNoteToday ? `<span style="color: #FFA116; font-weight: 600;">📝 Note Added</span>` : ''}
                     </div>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
                 <div style="text-align: right; margin-right: 4px;">
-                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary-indigo);">${habit.resiliency}% Strength</span>
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #FFA116;">${habit.resiliency}% Strength</span>
                     <div style="font-size: 0.75rem; color: var(--text-muted);">🔥 ${habit.streak}d streak</div>
                 </div>
                 <div class="habit-actions-box">
+                    <button class="btn-note-habit" onclick="useFreezeToken('${habit.id}')" title="Freeze Streak For Today (Uses 1 Token)">
+                        <i data-lucide="shield" style="width: 15px; height: 15px; color: #9055FF;"></i>
+                    </button>
+                    <button class="btn-note-habit" onclick="openNoteModal('${habit.id}')" title="Log Reflection Note">
+                        <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
+                    </button>
                     <button class="btn-edit-habit" onclick="openEditHabitModal('${habit.id}')" title="Edit Habit">
-                        <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="edit-3" style="width: 15px; height: 15px;"></i>
                     </button>
                     <button class="btn-delete-habit" onclick="deleteHabit('${habit.id}')" title="Delete Habit">
-                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
                     </button>
                 </div>
             </div>
@@ -596,9 +765,15 @@ function toggleHabit(habitId) {
         playChimeSound();
         if (window.confetti) window.confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
     } else {
-        habit.streak = Math.max(0, habit.streak - 1);
-        habit.resiliency = Math.max(50, habit.resiliency - 3);
-        state.logs[todayStr][habit.id] = false;
+        const isFrozenToday = state.frozenDays[todayStr] && state.frozenDays[todayStr][habit.id];
+        const weeklyDone = calculateWeeklyCompletions(habit.id);
+        if (isFrozenToday || (habit.weeklyTarget < 7 && weeklyDone >= habit.weeklyTarget)) {
+            state.logs[todayStr][habit.id] = false;
+        } else {
+            habit.streak = Math.max(0, habit.streak - 1);
+            habit.resiliency = Math.max(50, habit.resiliency - 3);
+            state.logs[todayStr][habit.id] = false;
+        }
     }
 
     saveUserData();
@@ -613,7 +788,6 @@ function deleteHabit(habitId) {
         saveUserData();
         renderHabitsList();
         renderMetrics();
-        updateTimerHabitSelect();
     }
 }
 
@@ -631,6 +805,9 @@ function renderMetrics() {
 
     const fillEl = document.getElementById('today-progress-fill');
     if (fillEl) fillEl.style.width = `${pct}%`;
+
+    const freezeEl = document.getElementById('score-freeze-tokens');
+    if (freezeEl) freezeEl.innerHTML = `${state.freezeTokens}<span class="unit">🛡️</span>`;
 }
 
 /* ==========================================================================
@@ -676,13 +853,6 @@ window.applyCustomTimerMins = function() {
     }
 };
 
-function updateTimerHabitSelect() {
-    const select = document.getElementById('timer-habit-select');
-    if (!select) return;
-    select.innerHTML = '<option value="">-- General Deep Work Session (No Auto-Log) --</option>' +
-        state.habits.map(h => `<option value="${h.id}">${escapeHtml(h.title)} (${h.domain})</option>`).join('');
-}
-
 function startTimer() {
     state.timer.isRunning = true;
     const btnStart = document.getElementById('btn-timer-start');
@@ -696,11 +866,6 @@ function startTimer() {
             pauseTimer();
             playChimeSound();
             if (window.confetti) window.confetti({ particleCount: 80, spread: 90 });
-
-            const select = document.getElementById('timer-habit-select');
-            if (select && select.value) {
-                toggleHabit(select.value);
-            }
             alert('🎉 Focus Session Finished!');
         }
     }, 1000);
@@ -784,9 +949,9 @@ function renderRadarChart() {
     if (state.charts.radar) state.charts.radar.destroy();
 
     const isLight = state.theme === 'light';
-    const primaryColor = isLight ? '#0D9488' : '#00F5D4';
-    const bgFill = isLight ? 'rgba(13, 148, 136, 0.25)' : 'rgba(0, 245, 212, 0.25)';
-    const gridColor = isLight ? 'rgba(15, 23, 42, 0.1)' : 'rgba(255, 255, 255, 0.08)';
+    const primaryColor = '#FFA116';
+    const bgFill = 'rgba(255, 161, 22, 0.2)';
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.08)';
 
     const domains = { health: 20, career: 20, mindfulness: 20, learning: 20, finance: 20 };
     state.habits.forEach(h => {
@@ -824,10 +989,10 @@ function renderAIInsights() {
     }
 
     container.innerHTML = `
-        <div class="glass-card" style="border-left: 4px solid var(--primary-indigo); padding: 20px; margin-bottom: 12px;">
-            <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary-indigo); text-transform: uppercase;">Active Habit Intelligence</span>
-            <h4 style="margin: 6px 0;">Tracking ${state.habits.length} Custom Habits & Rituals</h4>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">PulseFlow AI v1.0 active. Your habits are synchronized and ready for daily tracking!</p>
+        <div class="glass-card" style="border-left: 4px solid #FFA116; padding: 20px; margin-bottom: 12px;">
+            <span style="font-size: 0.72rem; font-weight: 700; color: #FFA116; text-transform: uppercase;">Active Habit Intelligence</span>
+            <h4 style="margin: 6px 0;">Tracking ${state.habits.length} Custom Habits & Routines</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">PulseFlow AI v1.0 active. Profile photo placed inside circular initial avatar spot!</p>
         </div>
     `;
 }
@@ -853,9 +1018,9 @@ function initBackupButtons() {
 
     if (btnExportCSV) {
         btnExportCSV.addEventListener('click', () => {
-            let csv = "Habit Title,Domain,Frequency,Streak,Resiliency,Reminder,Completed Today\n";
+            let csv = "Habit Title,Domain,Frequency,Weekly Target,Streak,Resiliency,Reminder Freq,Reminder Time,Completed Today\n";
             state.habits.forEach(h => {
-                csv += `"${h.title}","${h.domain}","${h.frequency || ''}",${h.streak},${h.resiliency},"${h.reminderEnabled ? h.reminderTime : 'None'}",${h.completed}\n`;
+                csv += `"${h.title}","${h.domain}","${h.frequency || ''}",${h.weeklyTarget || 7},${h.streak},${h.resiliency},"${h.reminderFreq || 'none'}","${h.reminderTime || ''}",${h.completed}\n`;
             });
             const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
             const dlAnchor = document.createElement('a');
@@ -876,10 +1041,12 @@ function initBackupButtons() {
             if (confirm('Reset all habit data for this account to 0?')) {
                 state.habits = [];
                 state.logs = {};
+                state.notes = {};
+                state.frozenDays = {};
+                state.freezeTokens = 3;
                 saveUserData();
                 renderHabitsList();
                 renderMetrics();
-                updateTimerHabitSelect();
                 initHeatmapGrid();
             }
         });
@@ -929,11 +1096,19 @@ function checkScheduledReminders() {
     const todayStr = now.toISOString().split('T')[0];
 
     state.habits.forEach(habit => {
-        if (habit.reminderEnabled && habit.reminderTime === timeStr && !habit.completed) {
-            const key = `${todayStr}_${habit.id}_${timeStr}`;
-            if (!state.lastNotified[key]) {
-                state.lastNotified[key] = true;
-                sendNotification(`🔔 Reminder: ${habit.title}`, `Target: ${habit.target} ${habit.unit}. Stay consistent!`);
+        if (habit.reminderFreq && habit.reminderFreq !== 'none' && !habit.completed) {
+            let shouldNotify = false;
+
+            if (habit.reminderFreq === 'daily' && habit.reminderTime === timeStr) shouldNotify = true;
+            if (habit.reminderFreq === 'hourly' && currentMins === '00') shouldNotify = true;
+            if (habit.reminderFreq === 'specific_date' && habit.reminderDate === todayStr && habit.reminderTime === timeStr) shouldNotify = true;
+
+            if (shouldNotify) {
+                const key = `${todayStr}_${habit.id}_${timeStr}`;
+                if (!state.lastNotified[key]) {
+                    state.lastNotified[key] = true;
+                    sendNotification(`🔔 Reminder: ${habit.title}`, `Target: ${habit.target} ${habit.unit}. Keep your streak alive!`);
+                }
             }
         }
     });
